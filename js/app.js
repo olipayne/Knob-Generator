@@ -1,8 +1,14 @@
-// app.js
+// /js/app.js
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
+import { createKnobGeometry } from './knobGeometry.js';
 
+/**
+ * KnobGenerator Class
+ * Initializes the Three.js scene, handles knob creation and updates,
+ * and manages exporting the knob as an STL file.
+ */
 class KnobGenerator {
     constructor() {
         this.scene = null;
@@ -21,13 +27,16 @@ class KnobGenerator {
         };
 
         this.init();
-        this.setupEventListeners();
     }
 
+    /**
+     * Initialize the Three.js scene, camera, renderer, controls, lighting,
+     * and create the initial knob.
+     */
     init() {
         // Scene setup
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x1a1a1a);
+        this.scene.background = new THREE.Color(0xffffff);
 
         // Camera setup
         const canvas = document.getElementById('threeCanvas');
@@ -64,8 +73,14 @@ class KnobGenerator {
 
         // Start animation loop
         this.animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => this.onWindowResize());
     }
 
+    /**
+     * Setup ambient, directional, and point lights, along with helpers.
+     */
     setupLighting() {
         // Ambient light
         const ambientLight = new THREE.AmbientLight(0x404040);
@@ -90,25 +105,16 @@ class KnobGenerator {
         this.scene.add(axesHelper);
     }
 
-    updateParams(newParams) {
-        Object.assign(this.params, newParams);
-        this.updateKnob();
-    }
-
+    /**
+     * Create or update the knob mesh based on current parameters.
+     */
     updateKnob() {
         if (this.knobMesh) {
             this.scene.remove(this.knobMesh);
         }
 
-        // Create basic geometry
-        const geometry = new THREE.CylinderGeometry(
-            this.params.knobDia / 2,  // top radius
-            this.params.knobDia / 2,  // bottom radius
-            this.params.knobHeight,   // height
-            32,          // radial segments
-            1,           // height segments
-            false        // open-ended
-        );
+        // Create knob geometry using the knobGeometry module
+        const geometry = createKnobGeometry(this.params);
 
         const material = new THREE.MeshPhongMaterial({
             color: 0x808080,
@@ -117,90 +123,15 @@ class KnobGenerator {
         });
 
         this.knobMesh = new THREE.Mesh(geometry, material);
-
-        // Add ridges if enabled
-        if (this.params.outerRidged) {
-            this.addRidges();
-        }
-
-        // Create shaft hole
-        if (this.params.shaftDia > 0) {
-            this.createShaftHole();
-        }
+        this.knobMesh.castShadow = true;
+        this.knobMesh.receiveShadow = true;
 
         this.scene.add(this.knobMesh);
     }
 
-    addRidges() {
-        const ridgeCount = this.params.noOfOuterRidges;
-        const ridgeWidth = 0.5;
-        const ridgeHeight = this.params.knobHeight * 0.8;
-        const ridgeDepth = 1;
-
-        for (let i = 0; i < ridgeCount; i++) {
-            const angle = (i / ridgeCount) * Math.PI * 2;
-            const ridgeGeometry = new THREE.BoxGeometry(ridgeWidth, ridgeHeight, ridgeDepth);
-            const ridgeMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
-            const ridge = new THREE.Mesh(ridgeGeometry, ridgeMaterial);
-
-            // Position ridge
-            const radius = (this.params.knobDia / 2) + (ridgeDepth / 2);
-            ridge.position.x = Math.cos(angle) * radius;
-            ridge.position.z = Math.sin(angle) * radius;
-            ridge.lookAt(new THREE.Vector3(0, 0, 0));
-
-            this.knobMesh.add(ridge);
-        }
-    }
-
-    createShaftHole() {
-        const shaftGeometry = new THREE.CylinderGeometry(
-            this.params.shaftDia / 2,
-            this.params.shaftDia / 2,
-            this.params.knobHeight + 1,
-            32
-        );
-
-        const shaftMaterial = new THREE.MeshPhongMaterial({
-            color: 0x000000,
-            side: THREE.DoubleSide
-        });
-
-        const shaftMesh = new THREE.Mesh(shaftGeometry, shaftMaterial);
-
-        // For D-shaped shaft
-        if (this.params.shaftType === 1) {
-            const cutoutGeometry = new THREE.BoxGeometry(
-                this.params.shaftDia,
-                this.params.knobHeight + 2,
-                this.params.shaftDia / 3
-            );
-            const cutoutMesh = new THREE.Mesh(cutoutGeometry, shaftMaterial);
-            cutoutMesh.position.z = this.params.shaftDia / 2;
-            shaftMesh.add(cutoutMesh);
-        }
-        // For detented shaft
-        else if (this.params.shaftType === 2) {
-            const detentCount = 20;
-            for (let i = 0; i < detentCount; i++) {
-                const angle = (i / detentCount) * Math.PI * 2;
-                const detentGeometry = new THREE.BoxGeometry(
-                    0.5,
-                    this.params.knobHeight + 2,
-                    1
-                );
-                const detentMesh = new THREE.Mesh(detentGeometry, shaftMaterial);
-                const radius = this.params.shaftDia / 2;
-                detentMesh.position.x = Math.cos(angle) * radius;
-                detentMesh.position.z = Math.sin(angle) * radius;
-                detentMesh.lookAt(new THREE.Vector3(0, 0, 0));
-                shaftMesh.add(detentMesh);
-            }
-        }
-
-        this.knobMesh.add(shaftMesh);
-    }
-
+    /**
+     * Animation loop to render the scene and update controls.
+     */
     animate() {
         requestAnimationFrame(() => this.animate());
 
@@ -213,88 +144,60 @@ class KnobGenerator {
         }
     }
 
-    setupEventListeners() {
-        // Window resize
-        window.addEventListener('resize', () => {
-            const canvas = document.getElementById('threeCanvas');
-            if (canvas && this.camera && this.renderer) {
-                this.camera.aspect = canvas.clientWidth / canvas.clientHeight;
-                this.camera.updateProjectionMatrix();
-                this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
-            }
-        });
-
-        // UI controls
-        const handleInputChange = (id, key, transform = (x) => x) => {
-            const element = document.getElementById(id);
-            if (element) {
-                const setValue = () => {
-                    const value = transform(element.type === 'checkbox' ? element.checked : element.value);
-                    this.params[key] = value;
-                    const valueDisplay = document.getElementById(`${id}Value`);
-                    if (valueDisplay) {
-                        valueDisplay.textContent = typeof value === 'number' ? `${value}mm` : value;
-                    }
-                    this.updateKnob();
-                };
-                element.addEventListener('input', setValue);
-                element.addEventListener('change', setValue);
-            }
-        };
-
-        // Setup all control listeners
-        handleInputChange('knobDia', 'knobDia', parseFloat);
-        handleInputChange('knobHeight', 'knobHeight', parseFloat);
-        handleInputChange('shaftDia', 'shaftDia', parseFloat);
-        handleInputChange('shaftType', 'shaftType', parseInt);
-        handleInputChange('outerRidged', 'outerRidged');
-        handleInputChange('noOfOuterRidges', 'noOfOuterRidges', parseInt);
-        handleInputChange('makeTopIndent', 'makeTopIndent');
-
-        // Export STL
-        const exportButton = document.getElementById('exportSTL');
-        if (exportButton) {
-            exportButton.addEventListener('click', () => {
-                const exporter = new STLExporter();
-                const stl = exporter.parse(this.scene, { binary: true });
-                const blob = new Blob([stl], { type: 'application/octet-stream' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = 'knob.stl';
-                link.click();
-            });
+    /**
+     * Handle window resize events to adjust camera and renderer.
+     */
+    onWindowResize() {
+        const canvas = document.getElementById('threeCanvas');
+        if (canvas && this.camera && this.renderer) {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            this.camera.aspect = width / height;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(width, height, false);
         }
+    }
 
-        // Reset camera
-        const resetButton = document.getElementById('resetCamera');
-        if (resetButton) {
-            resetButton.addEventListener('click', () => {
-                this.camera.position.set(50, 30, 50);
-                this.camera.lookAt(0, 0, 0);
-                this.controls.reset();
-            });
-        }
+    /**
+     * Update parameters and refresh the knob mesh.
+     * @param {Object} newParams - Key-value pairs of parameters to update.
+     */
+    updateParams(newParams) {
+        Object.assign(this.params, newParams);
+        this.updateKnob();
+    }
 
-        // Theme toggle
-        const themeToggle = document.getElementById('toggleTheme');
-        if (themeToggle) {
-            themeToggle.addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark');
-                const isDark = document.documentElement.classList.contains('dark');
-                localStorage.theme = isDark ? 'dark' : 'light';
-                this.scene.background = new THREE.Color(isDark ? 0x1a1a1a : 0xffffff);
-            });
-        }
+    /**
+     * Export the current scene as an STL file.
+     */
+    exportSTL() {
+        const exporter = new STLExporter();
+        const stl = exporter.parse(this.scene, { binary: true });
+        const blob = new Blob([stl], { type: 'application/octet-stream' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'knob.stl';
+        link.click();
+    }
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'r') {
-                const resetButton = document.getElementById('resetCamera');
-                if (resetButton) resetButton.click();
-            }
-        });
+    /**
+     * Reset the camera to its initial position and orientation.
+     */
+    resetCamera() {
+        this.camera.position.set(50, 30, 50);
+        this.camera.lookAt(0, 0, 0);
+        this.controls.reset();
+    }
+
+    /**
+     * Toggle between light and dark themes.
+     */
+    toggleTheme() {
+        document.documentElement.classList.toggle('dark');
+        const isDark = document.documentElement.classList.contains('dark');
+        localStorage.theme = isDark ? 'dark' : 'light';
+        this.scene.background = new THREE.Color(isDark ? 0x1a1a1a : 0xffffff);
     }
 }
 
-// Export the class directly
 export { KnobGenerator };
