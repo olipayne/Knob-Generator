@@ -123,6 +123,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             const app = new KnobGenerator();
             
+            setupUI(app);
+            setupEventListeners(app);
+
             // Initialize UI values
             Object.entries(app.params).forEach(([key, value]) => {
                 const element = document.getElementById(key);

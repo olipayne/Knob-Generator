@@ -90,6 +90,11 @@ class KnobGenerator {
         this.scene.add(axesHelper);
     }
 
+    updateParams(newParams) {
+        Object.assign(this.params, newParams);
+        this.updateKnob();
+    }
+
     updateKnob() {
         if (this.knobMesh) {
             this.scene.remove(this.knobMesh);
