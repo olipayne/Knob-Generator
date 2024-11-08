@@ -2,8 +2,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLExporter } from 'three/addons/exporters/STLExporter.js';
-import { createKnobGeometry } from './knobGeometry.js';
-import { setupUI } from './ui.js';
+import { createKnobGeometry } from '/js/knobGeometry.js';
 
 class KnobGenerator {
     constructor() {
@@ -33,15 +32,20 @@ class KnobGenerator {
 
         // Camera setup
         const canvas = document.getElementById('threeCanvas');
+        if (!canvas) {
+            console.error('Canvas element not found');
+            return;
+        }
+
         const aspect = canvas.clientWidth / canvas.clientHeight;
         this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
         this.camera.position.set(50, 30, 50);
+        this.camera.lookAt(0, 0, 0);
 
         // Renderer setup
         this.renderer = new THREE.WebGLRenderer({
             canvas,
             antialias: true,
-            alpha: true
         });
         this.renderer.setSize(canvas.clientWidth, canvas.clientHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -64,22 +68,25 @@ class KnobGenerator {
     }
 
     setupLighting() {
+        // Ambient light
         const ambientLight = new THREE.AmbientLight(0x404040);
         this.scene.add(ambientLight);
 
+        // Directional light
         const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
         directionalLight.position.set(1, 1, 1);
         this.scene.add(directionalLight);
 
+        // Point light
         const pointLight = new THREE.PointLight(0xffffff, 0.5);
         pointLight.position.set(0, 50, 0);
         this.scene.add(pointLight);
 
-        // Add grid helper
+        // Grid helper
         const gridHelper = new THREE.GridHelper(100, 10);
         this.scene.add(gridHelper);
 
-        // Add axes helper
+        // Axes helper
         const axesHelper = new THREE.AxesHelper(50);
         this.scene.add(axesHelper);
     }
@@ -102,49 +109,94 @@ class KnobGenerator {
 
     animate() {
         requestAnimationFrame(() => this.animate());
-        this.controls.update();
-        this.renderer.render(this.scene, this.camera);
+
+        if (this.controls) {
+            this.controls.update();
+        }
+
+        if (this.renderer && this.scene && this.camera) {
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 
     setupEventListeners() {
-        // Handle window resize
+        // Window resize
         window.addEventListener('resize', () => {
             const canvas = document.getElementById('threeCanvas');
-            this.camera.aspect = canvas.clientWidth / canvas.clientHeight;
-            this.camera.updateProjectionMatrix();
-            this.renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            if (canvas && this.camera && this.renderer) {
+                this.camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+            }
         });
 
-        // Reset camera
-        document.getElementById('resetCamera').addEventListener('click', () => {
-            this.camera.position.set(50, 30, 50);
-            this.camera.lookAt(0, 0, 0);
-            this.controls.reset();
-        });
+        // UI controls
+        const handleInputChange = (id, key, transform = (x) => x) => {
+            const element = document.getElementById(id);
+            if (element) {
+                const setValue = () => {
+                    const value = transform(element.type === 'checkbox' ? element.checked : element.value);
+                    this.params[key] = value;
+                    const valueDisplay = document.getElementById(`${id}Value`);
+                    if (valueDisplay) {
+                        valueDisplay.textContent = typeof value === 'number' ? `${value}mm` : value;
+                    }
+                    this.updateKnob();
+                };
+                element.addEventListener('input', setValue);
+                element.addEventListener('change', setValue);
+            }
+        };
+
+        // Setup all control listeners
+        handleInputChange('knobDia', 'knobDia', parseFloat);
+        handleInputChange('knobHeight', 'knobHeight', parseFloat);
+        handleInputChange('shaftDia', 'shaftDia', parseFloat);
+        handleInputChange('shaftType', 'shaftType', parseInt);
+        handleInputChange('outerRidged', 'outerRidged');
+        handleInputChange('noOfOuterRidges', 'noOfOuterRidges', parseInt);
+        handleInputChange('makeTopIndent', 'makeTopIndent');
 
         // Export STL
-        document.getElementById('exportSTL').addEventListener('click', () => {
-            const exporter = new STLExporter();
-            const stl = exporter.parse(this.scene);
-            const blob = new Blob([stl], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'knob.stl';
-            link.click();
-        });
+        const exportButton = document.getElementById('exportSTL');
+        if (exportButton) {
+            exportButton.addEventListener('click', () => {
+                const exporter = new STLExporter();
+                const stl = exporter.parse(this.scene, { binary: true });
+                const blob = new Blob([stl], { type: 'application/octet-stream' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'knob.stl';
+                link.click();
+            });
+        }
 
-        // Dark mode toggle
-        document.getElementById('toggleTheme').addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-            const isDark = document.documentElement.classList.contains('dark');
-            localStorage.theme = isDark ? 'dark' : 'light';
-            this.scene.background = new THREE.Color(isDark ? 0x1a1a1a : 0xffffff);
-        });
+        // Reset camera
+        const resetButton = document.getElementById('resetCamera');
+        if (resetButton) {
+            resetButton.addEventListener('click', () => {
+                this.camera.position.set(50, 30, 50);
+                this.camera.lookAt(0, 0, 0);
+                this.controls.reset();
+            });
+        }
+
+        // Theme toggle
+        const themeToggle = document.getElementById('toggleTheme');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                const isDark = document.documentElement.classList.contains('dark');
+                localStorage.theme = isDark ? 'dark' : 'light';
+                this.scene.background = new THREE.Color(isDark ? 0x1a1a1a : 0xffffff);
+            });
+        }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key.toLowerCase() === 'r') {
-                document.getElementById('resetCamera').click();
+                const resetButton = document.getElementById('resetCamera');
+                if (resetButton) resetButton.click();
             }
         });
     }
@@ -155,8 +207,23 @@ class KnobGenerator {
     }
 }
 
-// Initialize
-const app = new KnobGenerator();
-setupUI(app);
+// Initialize app and UI
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new KnobGenerator();
 
-export default app;
+    // Initialize UI values
+    Object.entries(app.params).forEach(([key, value]) => {
+        const element = document.getElementById(key);
+        const valueDisplay = document.getElementById(`${key}Value`);
+        if (element) {
+            if (element.type === 'checkbox') {
+                element.checked = value;
+            } else {
+                element.value = value;
+            }
+        }
+        if (valueDisplay && typeof value === 'number') {
+            valueDisplay.textContent = `${value}mm`;
+        }
+    });
+});
