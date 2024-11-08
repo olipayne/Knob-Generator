@@ -1,6 +1,5 @@
 // app.js
 const { THREE, OrbitControls, STLExporter } = window;
-import { createKnobGeometry } from '/js/knobGeometry.js';
 
 class KnobGenerator {
     constructor() {
@@ -94,7 +93,16 @@ class KnobGenerator {
             this.scene.remove(this.knobMesh);
         }
 
-        const geometry = createKnobGeometry(this.params);
+        // Create basic geometry
+        const geometry = new THREE.CylinderGeometry(
+            this.params.knobDia / 2,  // top radius
+            this.params.knobDia / 2,  // bottom radius
+            this.params.knobHeight,   // height
+            32,          // radial segments
+            1,           // height segments
+            false        // open-ended
+        );
+
         const material = new THREE.MeshPhongMaterial({
             color: 0x808080,
             shininess: 30,
@@ -102,7 +110,88 @@ class KnobGenerator {
         });
 
         this.knobMesh = new THREE.Mesh(geometry, material);
+
+        // Add ridges if enabled
+        if (this.params.outerRidged) {
+            this.addRidges();
+        }
+
+        // Create shaft hole
+        if (this.params.shaftDia > 0) {
+            this.createShaftHole();
+        }
+
         this.scene.add(this.knobMesh);
+    }
+
+    addRidges() {
+        const ridgeCount = this.params.noOfOuterRidges;
+        const ridgeWidth = 0.5;
+        const ridgeHeight = this.params.knobHeight * 0.8;
+        const ridgeDepth = 1;
+
+        for (let i = 0; i < ridgeCount; i++) {
+            const angle = (i / ridgeCount) * Math.PI * 2;
+            const ridgeGeometry = new THREE.BoxGeometry(ridgeWidth, ridgeHeight, ridgeDepth);
+            const ridgeMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
+            const ridge = new THREE.Mesh(ridgeGeometry, ridgeMaterial);
+
+            // Position ridge
+            const radius = (this.params.knobDia / 2) + (ridgeDepth / 2);
+            ridge.position.x = Math.cos(angle) * radius;
+            ridge.position.z = Math.sin(angle) * radius;
+            ridge.lookAt(new THREE.Vector3(0, 0, 0));
+
+            this.knobMesh.add(ridge);
+        }
+    }
+
+    createShaftHole() {
+        const shaftGeometry = new THREE.CylinderGeometry(
+            this.params.shaftDia / 2,
+            this.params.shaftDia / 2,
+            this.params.knobHeight + 1,
+            32
+        );
+
+        const shaftMaterial = new THREE.MeshPhongMaterial({
+            color: 0x000000,
+            side: THREE.DoubleSide
+        });
+
+        const shaftMesh = new THREE.Mesh(shaftGeometry, shaftMaterial);
+
+        // For D-shaped shaft
+        if (this.params.shaftType === 1) {
+            const cutoutGeometry = new THREE.BoxGeometry(
+                this.params.shaftDia,
+                this.params.knobHeight + 2,
+                this.params.shaftDia / 3
+            );
+            const cutoutMesh = new THREE.Mesh(cutoutGeometry, shaftMaterial);
+            cutoutMesh.position.z = this.params.shaftDia / 2;
+            shaftMesh.add(cutoutMesh);
+        }
+        // For detented shaft
+        else if (this.params.shaftType === 2) {
+            const detentCount = 20;
+            for (let i = 0; i < detentCount; i++) {
+                const angle = (i / detentCount) * Math.PI * 2;
+                const detentGeometry = new THREE.BoxGeometry(
+                    0.5,
+                    this.params.knobHeight + 2,
+                    1
+                );
+                const detentMesh = new THREE.Mesh(detentGeometry, shaftMaterial);
+                const radius = this.params.shaftDia / 2;
+                detentMesh.position.x = Math.cos(angle) * radius;
+                detentMesh.position.z = Math.sin(angle) * radius;
+                detentMesh.lookAt(new THREE.Vector3(0, 0, 0));
+                shaftMesh.add(detentMesh);
+            }
+        }
+
+        this.knobMesh.add(shaftMesh);
     }
 
     animate() {
@@ -198,15 +287,9 @@ class KnobGenerator {
             }
         });
     }
-
-    updateParams(newParams) {
-        this.params = { ...this.params, ...newParams };
-        this.updateKnob();
-    }
 }
 
-// Initialize app and UI
-document.addEventListener('DOMContentLoaded', () => {
+export function initApp() {
     const app = new KnobGenerator();
 
     // Initialize UI values
@@ -224,4 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
             valueDisplay.textContent = `${value}mm`;
         }
     });
-});
+
+    return app;
+}
