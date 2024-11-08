@@ -1,8 +1,10 @@
 // /js/knobGeometry.js
 
+// /js/knobGeometry.js
+
 import * as THREE from 'three';
-// Import the CSG library (ensure the path is correct or use a CDN)
-import { CSG } from 'https://unpkg.com/three-csgmesh@1.0.2/build/three-csgmesh.module.js';
+// Use three-csg-ts instead of three-csgmesh
+import { CSG } from 'https://unpkg.com/three-csg-ts@3.2.0/lib/esm/CSG.js';
 
 /**
  * Creates the geometry for the knob based on provided parameters.
