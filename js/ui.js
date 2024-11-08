@@ -4,8 +4,6 @@ export function setupUI(app) {
     setupDimensionsPanel();
     setupShaftPanel();
     setupFeaturesPanel();
-
-    // Connect all inputs to the app
     setupEventListeners(app);
 }
 
@@ -16,29 +14,31 @@ function setupDimensionsPanel() {
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Basic Dimensions</h2>
             
             <div class="space-y-2">
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Knob Diameter
-                    <div class="flex items-center space-x-2">
-                        <input type="range" 
-                               min="10" max="100" value="35" 
-                               class="flex-grow h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 dark:bg-gray-700" 
-                               id="knobDia">
-                        <span class="text-sm tabular-nums w-12 text-gray-600 dark:text-gray-400" id="knobDiaValue">35mm</span>
-                    </div>
                 </label>
+                <div class="flex items-center space-x-3">
+                    <input type="range" 
+                           min="10" max="100" value="35" 
+                           class="flex-grow"
+                           id="knobDia">
+                    <span class="text-sm tabular-nums w-14 text-right text-gray-600 dark:text-gray-400" 
+                          id="knobDiaValue">35mm</span>
+                </div>
             </div>
 
             <div class="space-y-2">
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Knob Height
-                    <div class="flex items-center space-x-2">
-                        <input type="range" 
-                               min="5" max="50" value="14" 
-                               class="flex-grow h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 dark:bg-gray-700" 
-                               id="knobHeight">
-                        <span class="text-sm tabular-nums w-12 text-gray-600 dark:text-gray-400" id="knobHeightValue">14mm</span>
-                    </div>
                 </label>
+                <div class="flex items-center space-x-3">
+                    <input type="range" 
+                           min="5" max="50" value="14" 
+                           class="flex-grow"
+                           id="knobHeight">
+                    <span class="text-sm tabular-nums w-14 text-right text-gray-600 dark:text-gray-400" 
+                          id="knobHeightValue">14mm</span>
+                </div>
             </div>
         </div>
     `;
@@ -51,28 +51,28 @@ function setupShaftPanel() {
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Shaft Options</h2>
             
             <div class="space-y-2">
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Shaft Type
-                    <select class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white" 
-                            id="shaftType">
-                        <option value="0">Round</option>
-                        <option value="1">D-Shape</option>
-                        <option value="2">Detented</option>
-                    </select>
                 </label>
+                <select class="mt-1" id="shaftType">
+                    <option value="0">Round</option>
+                    <option value="1">D-Shape</option>
+                    <option value="2">Detented</option>
+                </select>
             </div>
 
             <div class="space-y-2">
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Shaft Diameter
-                    <div class="flex items-center space-x-2">
-                        <input type="range" 
-                               min="3" max="20" value="6" step="0.1" 
-                               class="flex-grow h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 dark:bg-gray-700" 
-                               id="shaftDia">
-                        <span class="text-sm tabular-nums w-12 text-gray-600 dark:text-gray-400" id="shaftDiaValue">6.0mm</span>
-                    </div>
                 </label>
+                <div class="flex items-center space-x-3">
+                    <input type="range" 
+                           min="3" max="20" value="6" step="0.1" 
+                           class="flex-grow"
+                           id="shaftDia">
+                    <span class="text-sm tabular-nums w-14 text-right text-gray-600 dark:text-gray-400" 
+                          id="shaftDiaValue">6.0mm</span>
+                </div>
             </div>
         </div>
     `;
@@ -86,7 +86,7 @@ function setupFeaturesPanel() {
             
             <div class="flex items-center space-x-3">
                 <input type="checkbox" 
-                       class="w-4 h-4 text-blue-500 border-gray-300 rounded dark:border-gray-600 focus:ring-blue-500" 
+                       class="h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700" 
                        id="outerRidged" checked>
                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Outer Ridges
@@ -94,21 +94,22 @@ function setupFeaturesPanel() {
             </div>
 
             <div class="space-y-2">
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Number of Ridges
-                    <div class="flex items-center space-x-2">
-                        <input type="range" 
-                               min="10" max="100" value="50" 
-                               class="flex-grow h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 dark:bg-gray-700" 
-                               id="noOfOuterRidges">
-                        <span class="text-sm tabular-nums w-12 text-gray-600 dark:text-gray-400" id="noOfOuterRidgesValue">50</span>
-                    </div>
                 </label>
+                <div class="flex items-center space-x-3">
+                    <input type="range" 
+                           min="10" max="100" value="50" 
+                           class="flex-grow"
+                           id="noOfOuterRidges">
+                    <span class="text-sm tabular-nums w-14 text-right text-gray-600 dark:text-gray-400" 
+                          id="noOfOuterRidgesValue">50</span>
+                </div>
             </div>
 
             <div class="flex items-center space-x-3">
                 <input type="checkbox" 
-                       class="w-4 h-4 text-blue-500 border-gray-300 rounded dark:border-gray-600 focus:ring-blue-500" 
+                       class="h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700" 
                        id="makeTopIndent" checked>
                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Top Indent
