@@ -3,49 +3,21 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
-import { createKnobGeometry } from './knobGeometry.js'; // Ensure this path is correct
+import { createKnobGeometry } from './knobGeometry.js';
 
-/**
- * KnobGenerator Class
- * Manages the Three.js scene, knob generation, UI interactions, and STL export.
- */
 class KnobGenerator {
     constructor() {
-        // Three.js essentials
-        this.scene = null;
-        this.camera = null;
-        this.renderer = null;
-        this.controls = null;
-
-        // Knob mesh
-        this.knobMesh = null;
-
-        // Default parameters
-        this.params = {
-            knobDia: 35,           // Diameter in mm
-            knobHeight: 14,        // Height in mm
-            shaftType: 0,          // 0: Round, 1: D-Shape, 2: Detented
-            shaftDia: 6,           // Shaft Diameter in mm
-            outerRidged: true,     // Boolean to toggle ridges
-            noOfOuterRidges: 50,   // Number of ridges
-            makeTopIndent: true    // Boolean to toggle top indent
-        };
-
-        // Initialize the scene
+        // Initialize Three.js essentials
         this.init();
 
-        // Bind methods to ensure proper 'this' context
-        this.animate = this.animate.bind(this);
-        this.onWindowResize = this.onWindowResize.bind(this);
+        // Start the animation loop
+        this.animate();
     }
 
-    /**
-     * Initializes the Three.js scene, camera, renderer, controls, and lighting.
-     */
     init() {
         // Create Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x1a1a1a); // Dark background for better visibility
+        this.scene.background = new THREE.Color(0x1a1a1a); // Dark background
 
         // Create Camera
         const canvas = document.getElementById('threeCanvas');
@@ -78,18 +50,21 @@ class KnobGenerator {
         this.setupLighting();
 
         // Create Initial Knob
+        this.params = {
+            knobDia: 35,
+            knobHeight: 14,
+            shaftType: 0,
+            shaftDia: 6,
+            outerRidged: true,
+            noOfOuterRidges: 50,
+            makeTopIndent: true
+        };
         this.updateKnob();
 
-        // Start Animation Loop
-        this.animate();
-
         // Handle Window Resize
-        window.addEventListener('resize', this.onWindowResize, false);
+        window.addEventListener('resize', this.onWindowResize.bind(this), false);
     }
 
-    /**
-     * Sets up the lighting for the scene.
-     */
     setupLighting() {
         // Ambient Light
         const ambientLight = new THREE.AmbientLight(0x404040, 2); // Soft white light
@@ -113,9 +88,6 @@ class KnobGenerator {
         this.scene.add(axesHelper);
     }
 
-    /**
-     * Creates or updates the knob mesh based on current parameters.
-     */
     updateKnob() {
         // Remove existing knob mesh if present
         if (this.knobMesh) {
@@ -144,10 +116,8 @@ class KnobGenerator {
         this.scene.add(this.knobMesh);
     }
 
-    /**
-     * Animation loop for rendering the scene.
-     */
-    animate() {
+    // Define animate as an arrow function to bind 'this' automatically
+    animate = () => {
         requestAnimationFrame(this.animate);
 
         // Update controls
@@ -157,9 +127,6 @@ class KnobGenerator {
         this.renderer.render(this.scene, this.camera);
     }
 
-    /**
-     * Handles window resize events to adjust camera and renderer.
-     */
     onWindowResize() {
         const canvas = document.getElementById('threeCanvas');
         if (!canvas) return;
@@ -175,10 +142,6 @@ class KnobGenerator {
         this.renderer.setSize(width, height);
     }
 
-    /**
-     * Updates knob parameters and regenerates the knob.
-     * @param {Object} newParams - An object containing parameters to update.
-     */
     updateParams(newParams) {
         // Merge new parameters with existing ones
         Object.assign(this.params, newParams);
@@ -187,9 +150,6 @@ class KnobGenerator {
         this.updateKnob();
     }
 
-    /**
-     * Exports the current scene (knob) as an STL file.
-     */
     exportSTL() {
         const exporter = new STLExporter();
         const stl = exporter.parse(this.knobMesh, { binary: true });
@@ -207,9 +167,6 @@ class KnobGenerator {
         URL.revokeObjectURL(link.href);
     }
 
-    /**
-     * Resets the camera to its default position and orientation.
-     */
     resetCamera() {
         // Reset camera position
         this.camera.position.set(50, 30, 50);
@@ -219,10 +176,6 @@ class KnobGenerator {
         this.controls.reset();
     }
 
-    /**
-     * Updates the scene background based on the theme.
-     * @param {boolean} isDark - Whether the dark theme is active.
-     */
     updateSceneBackground(isDark) {
         this.scene.background = new THREE.Color(isDark ? 0x1a1a1a : 0xffffff);
     }
