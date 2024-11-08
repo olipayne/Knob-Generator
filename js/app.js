@@ -1,9 +1,5 @@
 // app.js
-import * as THREE from 'three';
-
-// Using global OrbitControls and STLExporter that were loaded in script tags
-const { OrbitControls } = THREE;
-const { STLExporter } = THREE;
+const { THREE, OrbitControls, STLExporter } = window;
 import { createKnobGeometry } from '/js/knobGeometry.js';
 
 class KnobGenerator {
