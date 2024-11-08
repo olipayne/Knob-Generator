@@ -4,7 +4,11 @@ export function setupUI(app) {
     setupDimensionsPanel();
     setupShaftPanel();
     setupFeaturesPanel();
-    setupEventListeners(app);
+
+    // Initialize dark mode based on system preference
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+    }
 }
 
 function setupDimensionsPanel() {
