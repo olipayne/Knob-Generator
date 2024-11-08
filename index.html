@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Knob Generator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.161.0/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.161.0/three.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js" defer></script>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
@@ -83,9 +83,19 @@
         </div>
     </div>
 
-    <script>
-        // Three.js setup
+    <script defer>
+        // Global variables
         let scene, camera, renderer, knobMesh;
+        
+        // Wait for window load and Three.js to be available
+        window.addEventListener('load', () => {
+            if (typeof THREE === 'undefined') {
+                console.error('Three.js not loaded');
+                return;
+            }
+            init();
+            setupEventListeners();
+        });
         
         function init() {
             // Scene setup
@@ -93,13 +103,19 @@
             scene.background = new THREE.Color(0xffffff);
             
             // Camera setup
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const canvas = document.getElementById('threeCanvas');
+            const aspectRatio = canvas.clientWidth / canvas.clientHeight;
+            camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 1000);
             camera.position.z = 100;
             
             // Renderer setup
-            const canvas = document.getElementById('threeCanvas');
-            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer = new THREE.WebGLRenderer({ 
+                canvas, 
+                antialias: true,
+                alpha: true 
+            });
             renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             
             // Lighting
             const ambientLight = new THREE.AmbientLight(0x404040);
@@ -175,34 +191,35 @@
             renderer.render(scene, camera);
         }
         
-        // Event listeners
-        document.getElementById('knobDia').addEventListener('input', (e) => {
-            document.getElementById('knobDiaValue').textContent = `${e.target.value}mm`;
-            createKnob();
-        });
-        
-        document.getElementById('knobHeight').addEventListener('input', (e) => {
-            document.getElementById('knobHeightValue').textContent = `${e.target.value}mm`;
-            createKnob();
-        });
-        
-        document.getElementById('noOfOuterRidges').addEventListener('input', (e) => {
-            document.getElementById('noOfOuterRidgesValue').textContent = e.target.value;
-            createKnob();
-        });
-        
-        document.getElementById('outerRidged').addEventListener('change', createKnob);
-        
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            const canvas = document.getElementById('threeCanvas');
-            camera.aspect = canvas.clientWidth / canvas.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-        });
-        
-        // Initialize everything
-        init();
+        function setupEventListeners() {
+            // Event listeners for controls
+            document.getElementById('knobDia').addEventListener('input', (e) => {
+                document.getElementById('knobDiaValue').textContent = `${e.target.value}mm`;
+                createKnob();
+            });
+            
+            document.getElementById('knobHeight').addEventListener('input', (e) => {
+                document.getElementById('knobHeightValue').textContent = `${e.target.value}mm`;
+                createKnob();
+            });
+            
+            document.getElementById('noOfOuterRidges').addEventListener('input', (e) => {
+                document.getElementById('noOfOuterRidgesValue').textContent = e.target.value;
+                createKnob();
+            });
+            
+            document.getElementById('outerRidged').addEventListener('change', createKnob);
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                const canvas = document.getElementById('threeCanvas');
+                if (camera && renderer) {
+                    camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+                }
+            });
+        }
     </script>
 </body>
 </html>
