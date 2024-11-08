@@ -13,7 +13,7 @@ export function createKnobGeometry(params) {
     } = params;
 
     // Create main knob geometry
-    const mainGeometry = new THREE.CylinderGeometry(
+    const knobGeometry = new THREE.CylinderGeometry(
         knobDia / 2,  // top radius
         knobDia / 2,  // bottom radius
         knobHeight,   // height
@@ -22,99 +22,32 @@ export function createKnobGeometry(params) {
         false        // open-ended
     );
 
-    // Create shaft hole
-    const shaftGeometry = createShaftGeometry(shaftType, shaftDia, knobHeight);
-
-    // Use CSG to subtract shaft from main body
-    const knobMesh = new THREE.Mesh(mainGeometry);
-    const shaftMesh = new THREE.Mesh(shaftGeometry);
-
-    // Position shaft at bottom of knob
-    shaftMesh.position.y = -knobHeight / 4;
-
-    // Perform boolean subtraction
-    const finalGeometry = subtract(mainGeometry, shaftGeometry);
+    let finalGeometry = knobGeometry;
 
     // Add ridges if enabled
     if (outerRidged) {
-        addRidges(finalGeometry, noOfOuterRidges, knobDia, knobHeight);
+        finalGeometry = addRidges(finalGeometry, noOfOuterRidges, knobDia, knobHeight);
     }
 
     // Add top indent if enabled
     if (makeTopIndent) {
-        addTopIndent(finalGeometry, knobDia, knobHeight);
+        finalGeometry = addTopIndent(finalGeometry, knobDia, knobHeight);
     }
+
+    // Create shaft hole
+    const shaftGeometry = createShaftGeometry(shaftType, shaftDia, knobHeight);
+    // TODO: Implement proper CSG for shaft hole
 
     return finalGeometry;
 }
 
-function createShaftGeometry(type, diameter, height) {
-    switch (type) {
-        case 0: // Round shaft
-            return new THREE.CylinderGeometry(
-                diameter / 2,
-                diameter / 2,
-                height * 1.1, // Slightly taller to ensure clean boolean operation
-                32
-            );
-
-        case 1: // D-shaped shaft
-            const roundShaft = new THREE.CylinderGeometry(
-                diameter / 2,
-                diameter / 2,
-                height * 1.1,
-                32
-            );
-
-            // Create flat side
-            const flatCutout = new THREE.BoxGeometry(
-                diameter,
-                height * 1.1,
-                diameter / 3
-            );
-            flatCutout.translate(0, 0, diameter / 2);
-
-            // Subtract flat side from round shaft
-            return subtract(roundShaft, flatCutout);
-
-        case 2: // Detented shaft
-            const baseShaft = new THREE.CylinderGeometry(
-                diameter / 2,
-                diameter / 2,
-                height * 1.1,
-                20
-            );
-
-            // Add detents
-            const detentCount = 20;
-            const detentDepth = diameter * 0.1;
-            const detentWidth = Math.PI / detentCount;
-
-            for (let i = 0; i < detentCount; i++) {
-                const angle = (i / detentCount) * Math.PI * 2;
-                const detentGeometry = new THREE.BoxGeometry(
-                    detentDepth,
-                    height * 1.1,
-                    detentDepth
-                );
-
-                detentGeometry.translate(
-                    Math.cos(angle) * (diameter / 2 + detentDepth / 2),
-                    0,
-                    Math.sin(angle) * (diameter / 2 + detentDepth / 2)
-                );
-
-                baseShaft.merge(detentGeometry);
-            }
-
-            return baseShaft;
-    }
-}
-
-function addRidges(geometry, count, diameter, height) {
+function addRidges(baseGeometry, count, diameter, height) {
     const ridgeWidth = 0.5;
     const ridgeHeight = height * 0.8;
     const ridgeDepth = 1;
+
+    // Create a merged geometry
+    const geometries = [baseGeometry];
 
     for (let i = 0; i < count; i++) {
         const angle = (i / count) * Math.PI * 2;
@@ -125,17 +58,57 @@ function addRidges(geometry, count, diameter, height) {
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
 
-        ridgeGeometry.translate(x, 0, z);
+        // Create transformation matrix
+        const matrix = new THREE.Matrix4();
+        matrix.makeTranslation(x, 0, z);
 
         // Rotate ridge to face center
-        const rotation = Math.atan2(z, x);
-        ridgeGeometry.rotateY(rotation);
+        const rotation = new THREE.Matrix4();
+        rotation.makeRotationY(Math.atan2(z, x));
+        matrix.multiply(rotation);
 
-        geometry.merge(ridgeGeometry);
+        // Apply transformation
+        ridgeGeometry.applyMatrix4(matrix);
+
+        geometries.push(ridgeGeometry);
+    }
+
+    // Merge all geometries
+    const mergedGeometry = mergeBufferGeometries(geometries);
+    return mergedGeometry;
+}
+
+function createShaftGeometry(type, diameter, height) {
+    switch (type) {
+        case 0: // Round shaft
+            return new THREE.CylinderGeometry(
+                diameter / 2,
+                diameter / 2,
+                height * 1.1,
+                32
+            );
+
+        case 1: // D-shaped shaft
+            // TODO: Implement D-shaped shaft
+            return new THREE.CylinderGeometry(
+                diameter / 2,
+                diameter / 2,
+                height * 1.1,
+                32
+            );
+
+        case 2: // Detented shaft
+            // TODO: Implement detented shaft
+            return new THREE.CylinderGeometry(
+                diameter / 2,
+                diameter / 2,
+                height * 1.1,
+                32
+            );
     }
 }
 
-function addTopIndent(geometry, diameter, height) {
+function addTopIndent(baseGeometry, diameter, height) {
     const indentRadius = diameter * 0.3;
     const indentDepth = height * 0.2;
 
@@ -149,14 +122,81 @@ function addTopIndent(geometry, diameter, height) {
         Math.PI / 2
     );
 
-    sphereGeometry.translate(0, height / 2, 0);
-    geometry.merge(sphereGeometry);
+    // Position sphere at top of knob
+    const matrix = new THREE.Matrix4();
+    matrix.makeTranslation(0, height / 2, 0);
+    sphereGeometry.applyMatrix4(matrix);
+
+    return mergeBufferGeometries([baseGeometry, sphereGeometry]);
 }
 
-// Helper function to perform boolean subtraction
-function subtract(geometryA, geometryB) {
-    // This is a simplified version - in a real implementation,
-    // you would use a proper CSG library like ThreeBSP
-    // For now, we'll just return the main geometry
-    return geometryA;
+// Helper function to merge buffer geometries
+function mergeBufferGeometries(geometries) {
+    const positions = [];
+    const normals = [];
+    const uvs = [];
+    let vertexCount = 0;
+    const indices = [];
+
+    geometries.forEach(geometry => {
+        const position = geometry.attributes.position;
+        const normal = geometry.attributes.normal;
+        const uv = geometry.attributes.uv;
+        const index = geometry.index;
+
+        // Add positions
+        for (let i = 0; i < position.count; i++) {
+            positions.push(
+                position.getX(i),
+                position.getY(i),
+                position.getZ(i)
+            );
+        }
+
+        // Add normals
+        if (normal) {
+            for (let i = 0; i < normal.count; i++) {
+                normals.push(
+                    normal.getX(i),
+                    normal.getY(i),
+                    normal.getZ(i)
+                );
+            }
+        }
+
+        // Add UVs if they exist
+        if (uv) {
+            for (let i = 0; i < uv.count; i++) {
+                uvs.push(
+                    uv.getX(i),
+                    uv.getY(i)
+                );
+            }
+        }
+
+        // Add indices
+        if (index) {
+            for (let i = 0; i < index.count; i++) {
+                indices.push(index.getX(i) + vertexCount);
+            }
+        } else {
+            for (let i = 0; i < position.count; i++) {
+                indices.push(i + vertexCount);
+            }
+        }
+
+        vertexCount += position.count;
+    });
+
+    const mergedGeometry = new THREE.BufferGeometry();
+    mergedGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    mergedGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    if (uvs.length > 0) {
+        mergedGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    }
+    mergedGeometry.setIndex(indices);
+
+    mergedGeometry.computeVertexNormals();
+
+    return mergedGeometry;
 }
