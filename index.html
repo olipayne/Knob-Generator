@@ -4,18 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Knob Generator</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles for range inputs */
         input[type="range"] {
-            @apply h-2 w-full bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700;
+            /* Tailwind CSS classes applied via @apply */
+            height: 0.5rem; /* h-2 */
+            width: 100%; /* w-full */
+            background-color: #e5e7eb; /* bg-gray-200 */
+            border-radius: 0.5rem; /* rounded-lg */
+            appearance: none;
+            cursor: pointer;
         }
         input[type="range"]::-webkit-slider-thumb {
-            @apply appearance-none w-4 h-4 rounded-full bg-blue-500 cursor-pointer hover:bg-blue-600;
+            appearance: none;
+            width: 1rem; /* w-4 */
+            height: 1rem; /* h-4 */
+            border-radius: 9999px; /* rounded-full */
+            background-color: #3b82f6; /* bg-blue-500 */
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background-color: #2563eb; /* hover:bg-blue-600 */
+        }
+
         /* Custom styles for select dropdowns */
         select {
-            @apply block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:border-blue-500 focus:ring-blue-500 dark:text-white text-sm;
+            display: block;
+            width: 100%;
+            border-radius: 0.375rem; /* rounded-md */
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            background-color: #f9fafb; /* bg-gray-50 */
+            color: #374151; /* text-gray-700 */
+            font-size: 0.875rem; /* text-sm */
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        select:focus {
+            border-color: #3b82f6; /* focus:border-blue-500 */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* focus:ring-blue-500 */
+            outline: none;
         }
     </style>
 </head>
@@ -27,6 +60,7 @@
                 <div class="flex justify-between items-center">
                     <h1 class="text-2xl font-bold text-gray-800 dark:text-white">3D Knob Generator</h1>
                     <div class="flex items-center space-x-4">
+                        <!-- Export STL Button -->
                         <button id="exportSTL" 
                                 class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,6 +68,7 @@
                             </svg>
                             Export STL
                         </button>
+                        <!-- Theme Toggle Button -->
                         <button id="toggleTheme" 
                                 class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500">
                             <svg class="w-6 h-6 text-gray-800 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,8 +137,9 @@
         </main>
     </div>
 
-    <!-- Import Maps and Module Scripts -->
+    <!-- ES Module Shims (if needed) -->
     <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    <!-- Import Map for Three.js Modules -->
     <script type="importmap">
     {
         "imports": {
@@ -113,17 +149,82 @@
     }
     </script>
 
-    <!-- Main Module Script -->
+    <!-- Main Script -->
     <script type="module">
-        import { KnobGenerator } from './js/app.js';
-        import { setupUI } from './js/ui.js';
-        import { setupEventListeners } from './js/ui.js';
+        // Import necessary modules
+        import { KnobGenerator } from '/js/app.js';
+        import { setupUI, setupEventListeners } from '/js/ui.js';
 
+        // Initialize the application once the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', () => {
+            // Instantiate the KnobGenerator
             const app = new KnobGenerator();
-            setupUI(app);
+
+            // Setup the UI panels
+            setupUI();
+
+            // Setup event listeners and connect them to the KnobGenerator instance
             setupEventListeners(app);
+
+            // Initialize UI control values based on the current parameters
+            initializeUIValues(app);
         });
+
+        /**
+         * Initializes the UI control values to match the KnobGenerator's parameters.
+         * @param {KnobGenerator} app - The instance of KnobGenerator.
+         */
+        function initializeUIValues(app) {
+            // Knob Diameter
+            const knobDia = document.getElementById('knobDia');
+            const knobDiaValue = document.getElementById('knobDiaValue');
+            if (knobDia && knobDiaValue) {
+                knobDia.value = app.params.knobDia;
+                knobDiaValue.textContent = `${app.params.knobDia}mm`;
+            }
+
+            // Knob Height
+            const knobHeight = document.getElementById('knobHeight');
+            const knobHeightValue = document.getElementById('knobHeightValue');
+            if (knobHeight && knobHeightValue) {
+                knobHeight.value = app.params.knobHeight;
+                knobHeightValue.textContent = `${app.params.knobHeight}mm`;
+            }
+
+            // Shaft Type
+            const shaftType = document.getElementById('shaftType');
+            if (shaftType) {
+                shaftType.value = app.params.shaftType;
+            }
+
+            // Shaft Diameter
+            const shaftDia = document.getElementById('shaftDia');
+            const shaftDiaValue = document.getElementById('shaftDiaValue');
+            if (shaftDia && shaftDiaValue) {
+                shaftDia.value = app.params.shaftDia;
+                shaftDiaValue.textContent = `${app.params.shaftDia.toFixed(1)}mm`;
+            }
+
+            // Outer Ridges
+            const outerRidged = document.getElementById('outerRidged');
+            if (outerRidged) {
+                outerRidged.checked = app.params.outerRidged;
+            }
+
+            // Number of Ridges
+            const noOfOuterRidges = document.getElementById('noOfOuterRidges');
+            const noOfOuterRidgesValue = document.getElementById('noOfOuterRidgesValue');
+            if (noOfOuterRidges && noOfOuterRidgesValue) {
+                noOfOuterRidges.value = app.params.noOfOuterRidges;
+                noOfOuterRidgesValue.textContent = app.params.noOfOuterRidges;
+            }
+
+            // Top Indent
+            const makeTopIndent = document.getElementById('makeTopIndent');
+            if (makeTopIndent) {
+                makeTopIndent.checked = app.params.makeTopIndent;
+            }
+        }
     </script>
 </body>
 </html>

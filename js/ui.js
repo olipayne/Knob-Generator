@@ -1,18 +1,20 @@
 // /js/ui.js
 
 /**
- * Sets up the user interface panels and initializes event listeners
- * to interact with the KnobGenerator instance.
+ * ui.js
+ * 
+ * This module sets up the user interface (UI) controls for the 3D Knob Generator.
+ * It renders the necessary HTML elements and attaches event listeners to handle user interactions.
  */
 
 /**
- * Initializes the UI by setting up all panels and applying the initial theme.
+ * Sets up the UI panels by injecting the required HTML into the DOM.
  */
 export function setupUI() {
     setupDimensionsPanel();
     setupShaftPanel();
     setupFeaturesPanel();
-    initializeTheme();
+    // Optionally, you can set up additional UI panels here
 }
 
 /**
@@ -159,16 +161,7 @@ function setupFeaturesPanel() {
 }
 
 /**
- * Initializes the theme based on the user's system preference.
- */
-function initializeTheme() {
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.classList.add('dark');
-    }
-}
-
-/**
- * Sets up all event listeners for the UI controls to interact with the KnobGenerator.
+ * Attaches event listeners to the UI controls to handle user interactions.
  * @param {KnobGenerator} app - The instance of the KnobGenerator class.
  */
 export function setupEventListeners(app) {
@@ -257,7 +250,27 @@ export function setupEventListeners(app) {
         console.error('Top Indent toggle not found.');
     }
 
-    // Optional: Add event listener for theme toggle if applicable
+    // Export STL Button
+    const exportButton = document.getElementById('exportSTL');
+    if (exportButton) {
+        exportButton.addEventListener('click', () => {
+            app.exportSTL();
+        });
+    } else {
+        console.error('Export STL button not found.');
+    }
+
+    // Reset Camera Button
+    const resetButton = document.getElementById('resetCamera');
+    if (resetButton) {
+        resetButton.addEventListener('click', () => {
+            app.resetCamera();
+        });
+    } else {
+        console.error('Reset Camera button not found.');
+    }
+
+    // Theme Toggle Button
     const themeToggle = document.getElementById('toggleTheme');
     if (themeToggle) {
         themeToggle.addEventListener('click', () => {
@@ -266,5 +279,15 @@ export function setupEventListeners(app) {
             localStorage.theme = isDark ? 'dark' : 'light';
             app.updateSceneBackground(isDark);
         });
+    } else {
+        console.error('Theme Toggle button not found.');
     }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'r') {
+            const resetButton = document.getElementById('resetCamera');
+            if (resetButton) resetButton.click();
+        }
+    });
 }
