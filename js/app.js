@@ -1,5 +1,7 @@
 // app.js
-const { THREE, OrbitControls, STLExporter } = window;
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 
 class KnobGenerator {
     constructor() {
