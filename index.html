@@ -117,7 +117,7 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
         import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
-        import { initApp } from '/js/app.js';
+        import { KnobGenerator } from '/js/app.js';
 
         // Make these available globally
         window.THREE = THREE;
@@ -126,7 +126,23 @@
 
         // Initialize when the DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
-            initApp();
+            const app = new KnobGenerator();
+            
+            // Initialize UI values
+            Object.entries(app.params).forEach(([key, value]) => {
+                const element = document.getElementById(key);
+                const valueDisplay = document.getElementById(`${key}Value`);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = value;
+                    } else {
+                        element.value = value;
+                    }
+                }
+                if (valueDisplay && typeof value === 'number') {
+                    valueDisplay.textContent = `${value}mm`;
+                }
+            });
         });
     </script>
 </body>

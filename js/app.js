@@ -289,24 +289,5 @@ class KnobGenerator {
     }
 }
 
-export function initApp() {
-    const app = new KnobGenerator();
-
-    // Initialize UI values
-    Object.entries(app.params).forEach(([key, value]) => {
-        const element = document.getElementById(key);
-        const valueDisplay = document.getElementById(`${key}Value`);
-        if (element) {
-            if (element.type === 'checkbox') {
-                element.checked = value;
-            } else {
-                element.value = value;
-            }
-        }
-        if (valueDisplay && typeof value === 'number') {
-            valueDisplay.textContent = `${value}mm`;
-        }
-    });
-
-    return app;
-}
+// Export the class directly
+export { KnobGenerator };
