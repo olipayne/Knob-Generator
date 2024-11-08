@@ -1,7 +1,7 @@
 // /js/knobGeometry.js
 
 import * as THREE from 'three';
-// Import the CSG library (ensure the path is correct)
+// Import the CSG library (ensure the path is correct or use a CDN)
 import { CSG } from 'https://unpkg.com/three-csgmesh@1.0.2/build/three-csgmesh.module.js';
 
 /**
@@ -21,10 +21,10 @@ export function createKnobGeometry(params) {
     } = params;
 
     // Base knob geometry
-    let knob = new THREE.CylinderGeometry(knobDia / 2, knobDia / 2, knobHeight, 64, 1, false);
-    knob.translate(0, knobHeight / 2, 0); // Position the knob so that its base is at y=0
+    let knobGeometry = new THREE.CylinderGeometry(knobDia / 2, knobDia / 2, knobHeight, 64, 1, false);
+    knobGeometry.translate(0, knobHeight / 2, 0); // Position the knob so that its base is at y=0
 
-    let knobMesh = new THREE.Mesh(knob);
+    let knobMesh = new THREE.Mesh(knobGeometry);
 
     // Add outer ridges if enabled
     if (outerRidged) {
@@ -75,7 +75,9 @@ function addOuterRidges(baseMesh, count, diameter, height) {
         const baseCSG = CSG.fromMesh(new THREE.Mesh(mergedGeometry));
         const ridgeCSG = CSG.fromMesh(ridgeMesh);
         const mergedCSG = baseCSG.union(ridgeCSG);
-        mergedGeometry.copy(CSG.toMesh(mergedCSG, new THREE.Matrix4()).geometry);
+        const mergedMesh = CSG.toMesh(mergedCSG, new THREE.Matrix4());
+
+        mergedGeometry.copy(mergedMesh.geometry);
     }
 
     baseMesh.geometry = mergedGeometry;
@@ -98,13 +100,13 @@ function addTopIndent(baseMesh, diameter, height) {
     const indentMesh = new THREE.Mesh(indent);
     indentMesh.position.set(0, height, 0); // Position at the top of the knob
 
-    // Merge with base geometry using CSG
+    // Perform CSG subtraction
     const baseCSG = CSG.fromMesh(new THREE.Mesh(baseMesh.geometry));
     const indentCSG = CSG.fromMesh(indentMesh);
     const mergedCSG = baseCSG.subtract(indentCSG);
-    const mergedGeometry = CSG.toMesh(mergedCSG, new THREE.Matrix4()).geometry;
+    const mergedMesh = CSG.toMesh(mergedCSG, new THREE.Matrix4());
 
-    baseMesh.geometry = mergedGeometry;
+    baseMesh.geometry = mergedMesh.geometry;
     return baseMesh;
 }
 
@@ -143,9 +145,9 @@ function createShaftHole(baseMesh, shaftType, shaftDia, height) {
     const baseCSG = CSG.fromMesh(new THREE.Mesh(baseMesh.geometry));
     const shaftCSG = CSG.fromMesh(shaftMesh);
     const finalCSG = baseCSG.subtract(shaftCSG);
-    const finalGeometry = CSG.toMesh(finalCSG, new THREE.Matrix4()).geometry;
+    const finalMesh = CSG.toMesh(finalCSG, new THREE.Matrix4());
 
-    baseMesh.geometry = finalGeometry;
+    baseMesh.geometry = finalMesh.geometry;
     return baseMesh;
 }
 
@@ -153,7 +155,7 @@ function createShaftHole(baseMesh, shaftType, shaftDia, height) {
  * Creates a D-shaped shaft geometry.
  * @param {number} diameter - Diameter of the shaft.
  * @param {number} height - Height of the shaft.
- * @returns {THREE.Geometry} - The D-shaped shaft geometry.
+ * @returns {THREE.BufferGeometry} - The D-shaped shaft geometry.
  */
 function createDShapedShaft(diameter, height) {
     const shaft = new THREE.CylinderGeometry(diameter / 2, diameter / 2, height, 32);
@@ -165,16 +167,16 @@ function createDShapedShaft(diameter, height) {
     const shaftCSG = CSG.fromMesh(new THREE.Mesh(shaft));
     const cutoutCSG = CSG.fromMesh(cutoutMesh);
     const dShapedCSG = shaftCSG.subtract(cutoutCSG);
-    const dShapedGeometry = CSG.toMesh(dShapedCSG, new THREE.Matrix4()).geometry;
+    const dShapedMesh = CSG.toMesh(dShapedCSG, new THREE.Matrix4());
 
-    return dShapedGeometry;
+    return dShapedMesh.geometry;
 }
 
 /**
  * Creates a Detented shaft geometry.
  * @param {number} diameter - Diameter of the shaft.
  * @param {number} height - Height of the shaft.
- * @returns {THREE.Geometry} - The Detented shaft geometry.
+ * @returns {THREE.BufferGeometry} - The Detented shaft geometry.
  */
 function createDetentedShaft(diameter, height) {
     const shaft = new THREE.CylinderGeometry(diameter / 2, diameter / 2, height, 32);
@@ -212,27 +214,7 @@ function createDetentedShaft(diameter, height) {
     const shaftCSG = CSG.fromMesh(new THREE.Mesh(shaft));
     const detentsCSG = CSG.fromMesh(new THREE.Mesh(mergedDetents));
     const detentedCSG = shaftCSG.subtract(detentsCSG);
-    const detentedGeometry = CSG.toMesh(detentedCSG, new THREE.Matrix4()).geometry;
+    const detentedMesh = CSG.toMesh(detentedCSG, new THREE.Matrix4());
 
-    return detentedGeometry;
+    return detentedMesh.geometry;
 }
-
-/**
- * Subtracts one geometry from another using CSG operations.
- * @param {THREE.BufferGeometry} geometryA - The primary geometry.
- * @param {THREE.BufferGeometry} geometryB - The geometry to subtract.
- * @returns {THREE.BufferGeometry} - The resulting geometry after subtraction.
- */
-function subtractGeometry(geometryA, geometryB) {
-    const meshA = new THREE.Mesh(geometryA);
-    const meshB = new THREE.Mesh(geometryB);
-
-    const csgA = CSG.fromMesh(meshA);
-    const csgB = CSG.fromMesh(meshB);
-    const csgResult = csgA.subtract(csgB);
-    const resultMesh = CSG.toMesh(csgResult, new THREE.Matrix4());
-
-    return resultMesh.geometry;
-}
-
-export { KnobGenerator };
