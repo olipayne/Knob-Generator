@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Knob Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.161.0/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8">3D Knob Generator</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left panel: Controls -->
+            <div class="lg:col-span-1 bg-white rounded-lg shadow-lg p-6">
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Basic Dimensions</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Knob Diameter</label>
+                            <input type="range" min="10" max="100" value="35" class="w-full" id="knobDia">
+                            <span class="text-sm text-gray-500" id="knobDiaValue">35mm</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Knob Height</label>
+                            <input type="range" min="5" max="50" value="14" class="w-full" id="knobHeight">
+                            <span class="text-sm text-gray-500" id="knobHeightValue">14mm</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Shaft Options</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Shaft Type</label>
+                            <select class="w-full border rounded p-2" id="shaftType">
+                                <option value="0">Round</option>
+                                <option value="1">D-Shape</option>
+                                <option value="2">Detented</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Shaft Diameter</label>
+                            <input type="range" min="3" max="20" value="6" step="0.1" class="w-full" id="shaftDia">
+                            <span class="text-sm text-gray-500" id="shaftDiaValue">6.0mm</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Surface Features</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">
+                                <input type="checkbox" id="outerRidged" checked>
+                                Outer Ridges
+                            </label>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Number of Ridges</label>
+                            <input type="range" min="10" max="100" value="50" class="w-full" id="noOfOuterRidges">
+                            <span class="text-sm text-gray-500" id="noOfOuterRidgesValue">50</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">
+                                <input type="checkbox" id="makeTopIndent" checked>
+                                Top Indent
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right panel: 3D Preview -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-lg p-6 h-[600px]" id="preview">
+                    <canvas id="threeCanvas" class="w-full h-full"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Three.js setup
+        let scene, camera, renderer, knobMesh;
+        
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffffff);
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 100;
+            
+            // Renderer setup
+            const canvas = document.getElementById('threeCanvas');
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+            
+            // Initial knob creation
+            createKnob();
+            
+            // Animation loop
+            animate();
+        }
+        
+        function createKnob() {
+            const knobDia = parseFloat(document.getElementById('knobDia').value);
+            const knobHeight = parseFloat(document.getElementById('knobHeight').value);
+            const hasRidges = document.getElementById('outerRidged').checked;
+            
+            // Remove existing knob if any
+            if (knobMesh) {
+                scene.remove(knobMesh);
+            }
+            
+            // Create basic geometry
+            const geometry = new THREE.CylinderGeometry(
+                knobDia / 2,
+                knobDia / 2,
+                knobHeight,
+                32
+            );
+            
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x808080,
+                shininess: 30,
+                specular: 0x444444
+            });
+            
+            knobMesh = new THREE.Mesh(geometry, material);
+            
+            // Add ridges if enabled
+            if (hasRidges) {
+                const ridgeCount = parseInt(document.getElementById('noOfOuterRidges').value);
+                addRidges(knobMesh, ridgeCount, knobDia, knobHeight);
+            }
+            
+            scene.add(knobMesh);
+        }
+        
+        function addRidges(knobMesh, ridgeCount, knobDia, knobHeight) {
+            const ridgeGeometry = new THREE.BoxGeometry(0.5, knobHeight * 0.8, 1);
+            const ridgeMaterial = new THREE.MeshPhongMaterial({ color: 0x666666 });
+            
+            for (let i = 0; i < ridgeCount; i++) {
+                const ridge = new THREE.Mesh(ridgeGeometry, ridgeMaterial);
+                const angle = (i / ridgeCount) * Math.PI * 2;
+                ridge.position.x = Math.cos(angle) * (knobDia / 2 + 0.2);
+                ridge.position.z = Math.sin(angle) * (knobDia / 2 + 0.2);
+                ridge.lookAt(new THREE.Vector3(0, 0, 0));
+                knobMesh.add(ridge);
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (knobMesh) {
+                knobMesh.rotation.y += 0.005;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Event listeners
+        document.getElementById('knobDia').addEventListener('input', (e) => {
+            document.getElementById('knobDiaValue').textContent = `${e.target.value}mm`;
+            createKnob();
+        });
+        
+        document.getElementById('knobHeight').addEventListener('input', (e) => {
+            document.getElementById('knobHeightValue').textContent = `${e.target.value}mm`;
+            createKnob();
+        });
+        
+        document.getElementById('noOfOuterRidges').addEventListener('input', (e) => {
+            document.getElementById('noOfOuterRidgesValue').textContent = e.target.value;
+            createKnob();
+        });
+        
+        document.getElementById('outerRidged').addEventListener('change', createKnob);
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('threeCanvas');
+            camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        });
+        
+        // Initialize everything
+        init();
+    </script>
+</body>
+</html>
